@@ -36,7 +36,6 @@ export function PromotionIcon({ size = 24, className }) {
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
       <path d="M4 11.5 15 7v10L4 12.5Z" />
       <path d="M4 11.5v3.6a1.4 1.4 0 0 0 1.4 1.4h.3a1.4 1.4 0 0 0 1.4-1.6l-.4-2.3" />
-      <path d="M15 7v10a2.5 2.5 0 0 0 3.6-3.1M18.6 13.9A2.5 2.5 0 0 0 15 10.8" />
     </svg>
   );
 }
