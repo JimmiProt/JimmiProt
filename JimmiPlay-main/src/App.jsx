@@ -1,6 +1,17 @@
+import { createPortal } from 'react-dom';
+import Scoreboard from './Scoreboard.jsx';
+import TacticsBoard from './TacticsBoard.jsx';
+import ToolsPage from './ToolsPage.jsx';
+import MySpaceTools from './MySpaceTools.jsx';
+import AutoScrollFeatures from './AutoScrollFeatures.jsx';
+import DiscoverFilters from './DiscoverFilters.jsx';
+import ComingSoon from './ComingSoon.jsx';
+import { pathToRoute, routeToPath } from './appRoutes.js';
+import { defaultFilters, filterSessions } from './discoverFilters.js';
+import { CreateSheet, EventForm, ClubForm, CoachingFlow } from './CreateFlows';
 import React, { useState, useReducer, useMemo } from "react";
 import {
-  Search, MapPin, Calendar, Clock, Users, Trophy, User, Home,
+  Search, MapPin, Calendar, Clock, Users, Trophy, User, Home, ShoppingBag, Contact, GraduationCap, Layers,
   Filter, X, Check, Star, TrendingUp, Heart,
   Award, Settings, ArrowLeft, Plus, Minus, Shuffle, CreditCard,
   Building2, Bell, Wallet, ShieldCheck, ChevronRight, LogOut, Trash2, ClipboardList, ChevronDown
@@ -39,25 +50,27 @@ function Photo({ id, alt, className = "", overlay = true, children }) {
    pricing, club-hosted sessions, sports-passport profile stats.
 ---------------------------------------------------------------- */
 const LEVELS = [
-  { n: 1, name: "Beginner", detail: "New player learning basic grip, serve and rally rhythm." },
-  { n: 2, name: "Improver", detail: "Can rally short exchanges and understands simple court positioning." },
-  { n: 3, name: "Lower intermediate", detail: "Comfortable in social doubles with developing consistency." },
-  { n: 4, name: "Intermediate", detail: "Stable rallies, basic tactics and reliable serve/return." },
-  { n: 5, name: "Upper intermediate", detail: "Confident doubles player with pace control and net awareness." },
-  { n: 6, name: "Advanced", detail: "Strong movement, attack/defence patterns and competitive consistency." },
-  { n: 7, name: "Club advanced", detail: "Regular club or league player with high-tempo match experience." },
-  { n: 8, name: "Elite amateur", detail: "Tournament-level amateur with refined shot quality and speed." },
-  { n: 9, name: "Performance", detail: "County, university first-team or semi-professional standard." },
+  { n: 1, name: "Beginner", detail: "New player learning basic grip, serve and rally rhythm. Learning the basic rules and scoring, a correct racket grip and the forehand serve. The focus is on making clean contact and starting a simple rally." },
+  { n: 2, name: "Improver", detail: "Can rally short exchanges and understands simple court positioning. Understands the basic rules of indoor badminton. Overhead clears, underarm lifts and net shots are still developing and cannot yet be placed reliably." },
+  { n: 3, name: "Lower intermediate", detail: "Comfortable in social doubles with developing consistency. Can direct basic clears and lifts with some control. Footwork and recovery remain inconsistent, and unforced errors are common when moving or under pressure." },
+  { n: 4, name: "Intermediate", detail: "Stable rallies, basic tactics and reliable serve/return. Has a working grasp of forward, backward and sideways footwork. Makes better choices when given time to attack, recovers more effectively and makes fewer unforced errors." },
+  { n: 5, name: "Upper intermediate", detail: "Confident doubles player with pace control and net awareness. Can use the main strokes and basic tactics in games: smashes, drops, lifts, smash defence and net shots. Shot quality, accuracy and consistency still vary under pressure." },
+  { n: 6, name: "Advanced", detail: "Strong movement, attack/defence patterns and competitive consistency. Has a broad technical repertoire, fluent footwork and varied tactical options. Can switch between attack and defence effectively, but power, speed and consistency can fall short against stronger opponents." },
+  { n: 7, name: "Club advanced", detail: "Regular club or league player with high-tempo match experience. Sustains fast, demanding rallies and applies tactics consistently in club and league matches. Further progress depends on physical conditioning, technical reliability under pressure and experience against stronger competition." },
+  { n: 8, name: "Professional", detail: "Has undergone long-term professional training and has a thorough command of badminton technique and tactics. This level marks the transition from amateur to professional play. Compared with higher-level players, the main areas to develop are experience in top-tier competition and a decisive signature shot or finishing weapon." },
+  { n: 9, name: "Elite", detail: "Plays at the standard of a national or provincial professional athlete. Technique and tactical understanding are at the highest level, with a distinctive personal playing style and frequent outstanding performances in competition." },
 ];
 
+// Illustrative venue coordinates: https://mapcarta.com/W1364508412
+// Legacy September sample dates are kept in 2025, not rolled forward into live events.
 const SESSIONS = [
-  { id: "game-1", name: "Tuesday Improver Doubles", type: "Doubles", club: "Bromley Rally Club", location: "Crystal Palace", distanceMi: 0.3, date: "Tue 2 Sep", timeStart: "19:00", timeEnd: "21:00", price: 8, seats: 16, going: 9, male: 5, female: 4, levelMin: 2, levelMax: 4, courts: "4 courts · Courts 1–4", source: "Club hosted", reliability: 88, refundBy: "2 Sep, 02:00", tags: ["Level matched", "Shuttles included"] },
-  { id: "game-2", name: "Bromley Fast Rotation", type: "Social", club: "Bromley Rally Club", location: "Crystal Palace", distanceMi: 0.3, date: "Thu 4 Sep", timeStart: "20:00", timeEnd: "22:00", price: 9, seats: 16, going: 16, male: 10, female: 6, levelMin: 4, levelMax: 6, courts: "4 courts · Courts 1–4", source: "Club hosted", reliability: 91, refundBy: "3 Sep, 20:00", tags: ["Waitlist refill", "Fast rotation"] },
-  { id: "game-3", name: "Sunday Social Courts", type: "Social", club: "Bromley Rally Club", location: "Crystal Palace", distanceMi: 0.3, date: "Sun 6 Sep", timeStart: "10:00", timeEnd: "12:00", price: 7, seats: 16, going: 11, male: 8, female: 3, levelMin: 1, levelMax: 3, courts: "4 courts · Courts 1–4", source: "Club hosted", reliability: 84, refundBy: "5 Sep, 10:00", tags: ["Beginner friendly", "Racket support"] },
-  { id: "game-4", name: "Advanced Matchplay", type: "Doubles", club: "Bromley Rally Club", location: "Crystal Palace", distanceMi: 0.3, date: "Tue 9 Sep", timeStart: "19:30", timeEnd: "21:30", price: 10, seats: 16, going: 14, male: 8, female: 6, levelMin: 6, levelMax: 8, courts: "3 courts · Courts 2–4", source: "Club hosted", reliability: 90, refundBy: "8 Sep, 19:30", tags: ["Competitive", "Level checked"] },
-  { id: "game-5", name: "Greenwich Mixed Doubles", type: "Doubles", club: "Greenwich Shuttle Club", location: "Crystal Palace", distanceMi: 0.3, date: "Mon 1 Sep", timeStart: "18:30", timeEnd: "20:30", price: 8, seats: 16, going: 12, male: 8, female: 4, levelMin: 3, levelMax: 5, courts: "4 courts · Courts A–D", source: "Club hosted", reliability: 86, refundBy: "31 Aug, 18:30", tags: ["Balanced pairs", "Level matched"] },
-  { id: "game-6", name: "Beginner Rally Night", type: "Coaching", club: "Greenwich Shuttle Club", location: "Crystal Palace", distanceMi: 0.3, date: "Wed 3 Sep", timeStart: "19:00", timeEnd: "20:30", price: 11, seats: 12, going: 10, male: 7, female: 3, levelMin: 1, levelMax: 2, courts: "2 courts · Courts A–B", source: "Coach led", reliability: 95, refundBy: "2 Sep, 19:00", tags: ["Coach led", "Rackets available"] },
-  { id: "game-7", name: "Friday Full Court", type: "Social", club: "Greenwich Shuttle Club", location: "Crystal Palace", distanceMi: 0.3, date: "Fri 5 Sep", timeStart: "19:30", timeEnd: "21:30", price: 9, seats: 16, going: 16, male: 9, female: 7, levelMin: 4, levelMax: 6, courts: "4 courts · Courts A–D", source: "Club hosted", reliability: 89, refundBy: "4 Sep, 19:30", tags: ["Full session", "Auto refill"] },
+  { id: "game-1", name: "Tuesday Improver Doubles", type: "Doubles", club: "Bromley Rally Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-02", date: "Tue 2 Sep", timeStart: "19:00", timeEnd: "21:00", price: 8, seats: 16, going: 9, male: 5, female: 4, levelMin: 2, levelMax: 4, courts: "4 courts · Courts 1–4", source: "Club hosted", reliability: 88, refundBy: "2 Sep, 02:00", tags: ["Level matched", "Shuttles included"] },
+  { id: "game-2", name: "Bromley Fast Rotation", type: "Social", club: "Bromley Rally Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-04", date: "Thu 4 Sep", timeStart: "20:00", timeEnd: "22:00", price: 9, seats: 16, going: 16, male: 10, female: 6, levelMin: 4, levelMax: 6, courts: "4 courts · Courts 1–4", source: "Club hosted", reliability: 91, refundBy: "3 Sep, 20:00", tags: ["Waitlist refill", "Fast rotation"] },
+  { id: "game-3", name: "Sunday Social Courts", type: "Social", club: "Bromley Rally Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-06", date: "Sun 6 Sep", timeStart: "10:00", timeEnd: "12:00", price: 7, seats: 16, going: 11, male: 8, female: 3, levelMin: 1, levelMax: 3, courts: "4 courts · Courts 1–4", source: "Club hosted", reliability: 84, refundBy: "5 Sep, 10:00", tags: ["Beginner friendly", "Racket support"] },
+  { id: "game-4", name: "Advanced Matchplay", type: "Doubles", club: "Bromley Rally Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-09", date: "Tue 9 Sep", timeStart: "19:30", timeEnd: "21:30", price: 10, seats: 16, going: 14, male: 8, female: 6, levelMin: 6, levelMax: 8, courts: "3 courts · Courts 2–4", source: "Club hosted", reliability: 90, refundBy: "8 Sep, 19:30", tags: ["Competitive", "Level checked"] },
+  { id: "game-5", name: "Greenwich Mixed Doubles", type: "Doubles", club: "Greenwich Shuttle Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-01", date: "Mon 1 Sep", timeStart: "18:30", timeEnd: "20:30", price: 8, seats: 16, going: 12, male: 8, female: 4, levelMin: 3, levelMax: 5, courts: "4 courts · Courts A–D", source: "Club hosted", reliability: 86, refundBy: "31 Aug, 18:30", tags: ["Balanced pairs", "Level matched"] },
+  { id: "game-6", name: "Beginner Rally Night", type: "Coaching", club: "Greenwich Shuttle Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-03", date: "Wed 3 Sep", timeStart: "19:00", timeEnd: "20:30", price: 11, seats: 12, going: 10, male: 7, female: 3, levelMin: 1, levelMax: 2, courts: "2 courts · Courts A–B", source: "Coach led", reliability: 95, refundBy: "2 Sep, 19:00", tags: ["Coach led", "Rackets available"] },
+  { id: "game-7", name: "Friday Full Court", type: "Social", club: "Greenwich Shuttle Club", location: "Crystal Palace", areaId: "GB.ENG.GLA", cityIds: ["2643743", "6693937"], coordinates: { latitude: 51.42009, longitude: -0.06889 }, dateISO: "2025-09-05", date: "Fri 5 Sep", timeStart: "19:30", timeEnd: "21:30", price: 9, seats: 16, going: 16, male: 9, female: 7, levelMin: 4, levelMax: 6, courts: "4 courts · Courts A–D", source: "Club hosted", reliability: 89, refundBy: "4 Sep, 19:30", tags: ["Full session", "Auto refill"] },
 ];
 const seatsLeft = (s) => Math.max(0, s.seats - s.going);
 
@@ -244,12 +257,12 @@ function BackRow({ label, onBack }) {
 const NAV_ITEMS = [
   { key: "discover", label: "Discover", icon: Home },
   { key: "clubs", label: "Clubs", icon: Building2 },
-  { key: "rankings", label: "Rankings", icon: TrendingUp },
+  { key: "tools", label: "Tools", icon: Shuffle },
   { key: "tournaments", label: "Tournaments", icon: Trophy },
-  { key: "bookings", label: "My bookings", icon: Calendar },
+  { key: "bookings", label: "Bookings", icon: Calendar },
   { key: "organiser", label: "Organiser", icon: ClipboardList },
 ];
-const MOBILE_NAV = ["discover", "clubs", "tournaments", "bookings", "rankings"];
+const MOBILE_NAV = ["discover", "clubs", "create", "tools", "bookings"];
 
 const NOTIFICATIONS = [
   { id: "n1", title: "Waitlist spot opened", detail: "A seat freed up in Bromley Fast Rotation.", time: "12m ago" },
@@ -301,12 +314,9 @@ function Tabs({ options, value, onChange }) {
 
 function AccountMenu({ open, setOpen, go, openAccountModal }) {
   const items = [
-    { label: "View profile", action: () => go("profile") },
-    { label: "Organiser portal", action: () => go("organiser") },
+    { label: "My Space", action: () => go("profile") },
     { label: "Settings", action: () => openAccountModal("settings") },
-    { label: "Payment methods", action: () => openAccountModal("methods") },
     { label: "Payment history", action: () => openAccountModal("history") },
-    { label: "Policies", action: () => openAccountModal("policies") },
   ];
   return (
     <div className="relative">
@@ -342,11 +352,10 @@ function AccountMenu({ open, setOpen, go, openAccountModal }) {
    profile page.
 ---------------------------------------------------------------- */
 function AccountModal({ open, onClose, initialTab, paymentMethods, addPaymentMethod, removePaymentMethod, setDefaultMethod, flashToast }) {
-  const [tab, setTab] = useState(initialTab || "settings");
+  const tab = initialTab || "settings";
   const [form, setForm] = useState({ number: "", name: "", exp: "", cvc: "" });
   const [showAddCard, setShowAddCard] = useState(false);
 
-  React.useEffect(() => { if (open) setTab(initialTab || "settings"); }, [open, initialTab]);
   if (!open) return null;
 
   const submitCard = (e) => {
@@ -361,28 +370,14 @@ function AccountModal({ open, onClose, initialTab, paymentMethods, addPaymentMet
     flashToast("Card saved");
   };
 
-  const TABS = [
-    { value: "settings", label: "Settings" },
-    { value: "methods", label: "Payment methods" },
-    { value: "history", label: "Payment history" },
-    { value: "policies", label: "Policies" },
-  ];
+  const title = {settings: 'Settings', methods: 'Payment methods', history: 'Payment history', policies: 'Policy'}[tab];
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/50 p-4">
       <div className="mx-auto my-8 w-full max-w-2xl rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <Avatar initials={CURRENT_USER.initials} size={10} tone="white" />
-            <div><p className="font-semibold text-stone-900">{CURRENT_USER.name}</p><p className="text-xs text-stone-500">{CURRENT_USER.username || "@" + CURRENT_USER.name.toLowerCase()}</p></div>
-          </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"><X className="h-5 w-5" /></button>
-        </div>
-
-        <div className="px-5 pt-4">
-          <div className="overflow-x-auto">
-            <Tabs options={TABS} value={tab} onChange={setTab} />
-          </div>
+          <h2 className="text-xl text-stone-900">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="max-h-96 overflow-y-auto px-5 py-5">
@@ -467,29 +462,10 @@ function AccountModal({ open, onClose, initialTab, paymentMethods, addPaymentMet
 
           {tab === "policies" && (
             <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-stone-900">Why follow a club?</h3>
-                <ul className="mt-2 space-y-1.5">
-                  {CLUB_BENEFITS.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-sm text-stone-600"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-600" />{b}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-stone-900">Cancellations & refunds</h3>
+              <section>
+                <h3 className="text-sm font-semibold text-stone-900">Cancellations &amp; refunds</h3>
                 <p className="mt-2 text-sm leading-6 text-stone-600">Full refund if you cancel before the session's stated refund deadline. After that, seats can't be refunded but you can transfer to a friend from My bookings.</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-stone-900">Level bands</h3>
-                <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                  {LEVELS.map((l) => (
-                    <div key={l.n} className="rounded-lg border border-stone-200 p-2.5">
-                      <p className="text-xs font-medium text-stone-900">L{l.n} — {l.name}</p>
-                      <p className="text-xs text-stone-500">{l.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </section>
             </div>
           )}
         </div>
@@ -497,35 +473,49 @@ function AccountModal({ open, onClose, initialTab, paymentMethods, addPaymentMet
     </div>
   );
 }
+function BrandLogo() {
+  return <span className="brand-logo"><img src="/branding/jimmiplay-logo-dark.jpg" alt="JimmiPlay" width="1280" height="640" fetchPriority="high" /></span>;
+}
 function TopNav({ view, go, notifOpen, setNotifOpen, accountOpen, setAccountOpen, openAccountModal }) {
   return (
-    <header className="hidden md:flex sticky top-0 z-20 items-center justify-between border-b border-stone-800 bg-stone-900 px-8 py-3">
-      <button onClick={() => go("discover")} className="flex items-center gap-2">
-        <div className="h-7 w-7 rounded-md bg-yellow-400 flex items-center justify-center"><span className="text-stone-900 font-bold text-sm">F</span></div>
-        <span className="font-semibold text-white tracking-tight">Jimmy</span>
+    <header className="hidden xl:flex sticky top-0 z-20 items-center justify-between border-b border-stone-800 bg-stone-900 px-8 py-3">
+      <button onClick={() => go("discover")} className="brand-home" aria-label="JimmiPlay — Discover">
+        <BrandLogo />
       </button>
       <div className="flex items-center gap-1">
         <nav className="flex items-center gap-1">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => item.key !== "tournaments" && item.key !== "organiser").map((item) => (
             <button key={item.key} onClick={() => go(item.key)} className={`rounded-lg px-3 py-2 text-sm font-medium transition ${view === item.key ? "bg-stone-800 text-yellow-400" : "text-stone-300 hover:text-white"}`}>
               {item.label}
             </button>
           ))}
         </nav>
+        <button aria-label="Create" onClick={() => go("create")} className="art-plus desktop-plus">+</button>
+        <HeaderExtras go={go} setNotifOpen={setNotifOpen} setAccountOpen={setAccountOpen} openAccountModal={openAccountModal}/>
         <NotificationBell open={notifOpen} setOpen={setNotifOpen} />
         <AccountMenu open={accountOpen} setOpen={setAccountOpen} go={go} openAccountModal={openAccountModal} />
       </div>
     </header>
   );
 }
+function HeaderExtras({go,setNotifOpen,setAccountOpen,openAccountModal}) {
+  const [menu,setMenu]=useState(null);
+  const ref=React.useRef(null);
+  React.useEffect(()=>{const close=e=>{if(!ref.current?.contains(e.target))setMenu(null);};const escape=e=>{if(e.key==='Escape')setMenu(null);};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};},[]);
+  const navigate=view=>{setMenu(null);go(view);};
+  return <div className="header-extras" ref={ref}>{['fun','boring'].map(kind=><div className="mobile-more" key={kind}><button className="mobile-more-trigger" aria-expanded={menu===kind} onClick={()=>{setMenu(menu===kind?null:kind);setNotifOpen(false);setAccountOpen(false);}}><span>{kind==='fun'?'More':'Boring'}<br/>{kind==='fun'?'Fun':'Stuff'}</span><ChevronDown size={12}/></button>{menu===kind&&<div className="mobile-more-menu">{kind==='fun'?<><div className="mobile-more-shop" aria-disabled="true"><ShoppingBag size={18}/><span>Shop<small>Coming soon</small></span></div><button onClick={()=>navigate('coaching')}><GraduationCap size={18}/>Coaching</button><button onClick={()=>navigate('tournaments')}><Trophy size={18}/>Tournaments</button><button onClick={()=>navigate('organiser')}><ClipboardList size={18}/>Organiser Portal</button></>:<><button onClick={()=>{setMenu(null);openAccountModal('policies');}}>Policy</button><button onClick={()=>navigate('terms')}>Terms &amp; Conditions</button><button onClick={()=>navigate('contact')}>Contact us</button><button onClick={()=>navigate('about')}>About us</button></>}</div>}</div>)}</div>;
+}
+function InformationPage({view,go}) {
+ const titles={about:'About us',contact:'Contact us',terms:'Terms & Conditions'};
+ return <main className="mx-auto max-w-2xl px-4 py-6 sm:px-8"><BackRow label="Back to discover" onBack={()=>go('discover')}/><h1 className="text-2xl">{titles[view]}</h1><div className="information-copy">{view==='about'?<><h2>Three people. One shared court.</h2><p>JimmiPlay began with Benny, a middle-aged badminton enthusiast who loved the game but was tired of hunting for a group to play with. He teamed up with two younger friends — a co-founder and an IT builder — to make finding your badminton people a little easier. Two young minds, one seasoned player, and plenty of enthusiasm.</p><h2>A bridge between organisers and players</h2><p>Our mission is to help organisers build thriving communities and help players find sessions, clubs and coaches that suit their level and location. Less chasing group chats. More time on court.</p><h2>More than a game</h2><p>We want to make sport easier to join, bring generations and backgrounds together, and create more opportunities for friendship, movement and belonging. By helping local organisers reach players and players find their people, we hope to support healthier, more connected communities — one rally at a time.</p></>:view==='contact'?<><p>Questions, ideas or a little help finding your way? We would love to hear from players, coaches and organisers.</p><a className="underline" href="mailto:Hello@jimmiplay.com">Hello@jimmiplay.com</a></>:<><h2>Platform preview</h2><p>JimmiPlay is currently a demonstration platform. Listings, profiles and booking records may contain sample data. Booking, payment and registration screens do not confirm a real reservation, payment or coach approval.</p><h2>Before joining a session</h2><p>Check the organiser, venue, level requirements and any event-specific rules before making plans. Treat other players and organisers with respect and describe your playing level honestly.</p><h2>Full service terms</h2><p>Final service terms have not yet been published. They will be made available before live transactions are enabled.</p><p>For questions, contact <a className="underline" href="mailto:Hello@jimmiplay.com">Hello@jimmiplay.com</a>.</p></>}</div></main>;
+}
 function MobileHeader({ title, go, notifOpen, setNotifOpen, accountOpen, setAccountOpen, openAccountModal }) {
   return (
-    <header className="md:hidden sticky top-0 z-20 flex items-center justify-between border-b border-stone-800 bg-stone-900 px-4 py-3">
-      <button onClick={() => go("discover")} className="flex items-center gap-2">
-        <div className="h-6 w-6 rounded-md bg-yellow-400 flex items-center justify-center"><span className="text-stone-900 font-bold text-xs">F</span></div>
-        <span className="font-semibold text-white">Jimmy</span>
+    <header className="xl:hidden sticky top-0 z-20 flex items-center justify-between border-b border-stone-800 bg-stone-900 px-4 py-3">
+      <button onClick={() => go("discover")} className="brand-home" aria-label="JimmiPlay — Discover">
+        <BrandLogo />
       </button>
-      <p className="text-sm font-medium text-stone-300">{title}</p>
+      <HeaderExtras go={go} setNotifOpen={setNotifOpen} setAccountOpen={setAccountOpen} openAccountModal={openAccountModal}/>
       <div className="flex items-center gap-1">
         <NotificationBell open={notifOpen} setOpen={setNotifOpen} align="right" />
         <AccountMenu open={accountOpen} setOpen={setAccountOpen} go={go} openAccountModal={openAccountModal} />
@@ -534,19 +524,20 @@ function MobileHeader({ title, go, notifOpen, setNotifOpen, accountOpen, setAcco
   );
 }
 function BottomNav({ view, go }) {
-  return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 grid grid-cols-5 border-t border-stone-800 bg-stone-900">
-      {NAV_ITEMS.filter((i) => MOBILE_NAV.includes(i.key)).map((item) => {
+  return createPortal(
+    <nav aria-label="Main navigation" className="mobile-bottom-nav xl:hidden border-t border-stone-800 bg-stone-900">
+      {MOBILE_NAV.map(key => key === "create" ? { key, label: "Create", icon: Plus } : NAV_ITEMS.find(i => i.key === key)).map((item) => {
         const Icon = item.icon;
         const active = view === item.key;
         return (
-          <button key={item.key} onClick={() => go(item.key)} className="flex flex-col items-center gap-0.5 py-2.5">
+          <button key={item.key} aria-label={item.key === "create" ? "Create" : item.label} onClick={() => go(item.key)} className="flex flex-col items-center justify-center gap-0.5 py-2.5">
+            {item.key === "create" ? <span className="art-plus">+</span> : <>
             <Icon className={`h-5 w-5 ${active ? "text-yellow-400" : "text-stone-500"}`} />
-            <span className={`text-xs ${active ? "text-white font-medium" : "text-stone-500"}`}>{item.label.split(" ")[0]}</span>
+            <span className={`text-xs ${active ? "text-white font-medium" : "text-stone-500"}`}>{item.label}</span></>}
           </button>
         );
       })}
-    </nav>
+    </nav>, document.body
   );
 }
 
@@ -570,7 +561,7 @@ function SessionCard({ session, onOpen, favorites, toggleFav }) {
                   <Heart className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-stone-300"}`} />
                 </button>
               </div>
-              <p className="text-sm text-stone-500">{session.location} · {session.type}</p>
+              <p className="text-sm text-stone-500">{session.location} · {session.type}{session.distanceKm != null && ` · ${session.distanceKm.toFixed(1)} km away`}</p>
             </div>
             <p className="shrink-0 text-lg font-semibold text-stone-900">£{session.price}</p>
           </div>
@@ -594,82 +585,59 @@ function SessionCard({ session, onOpen, favorites, toggleFav }) {
 /* ---------------------------------------------------------------
    DISCOVER PAGE
 ---------------------------------------------------------------- */
-function DiscoverPage({ openEvent, favorites, toggleFav, openAccountModal }) {
-  const [filters, setFilters] = useState({ date: "any", level: "any", type: "any" });
-
-  const filtered = useMemo(() => SESSIONS.filter((s) => {
-    if (filters.type !== "any" && s.type !== filters.type) return false;
-    if (filters.level !== "any") {
-      const [lo, hi] = filters.level.split("-").map(Number);
-      if (s.levelMax < lo || s.levelMin > hi) return false;
-    }
-    return true;
-  }), [filters]);
+function DiscoverPage({ openEvent, favorites, toggleFav, openAccountModal, go }) {
+  const [featureInfo, setFeatureInfo] = useState(null);
+  const [filters, setFilters] = useState({...defaultFilters});
+  const [position, setPosition] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState('');
+  function locate() {
+    if (!navigator.geolocation) {setLocationMessage('Location is not supported by this browser.');return;}
+    setLocating(true);
+    setLocationMessage('');
+    navigator.geolocation.getCurrentPosition(p=>{setPosition({latitude:p.coords.latitude,longitude:p.coords.longitude});setLocating(false);setLocationMessage('Distances are approximate, in a straight line.');},e=>{setLocating(false);setLocationMessage(e.code===1?'Location access denied. Enable it in your browser settings to find nearby sessions.':e.code===3?'Location request timed out. Please try again.':'Could not determine your location. Please try again.');setFilters(f=>({...f,radius:'any',sort:f.sort==='distance'?'smart':f.sort}));},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  }
+  const filtered = useMemo(() => filterSessions(SESSIONS,filters,position), [filters,position]);
 
   const types = ["any", ...Array.from(new Set(SESSIONS.map((s) => s.type)))];
 
   return (
     <div>
-      <section className="relative h-72 overflow-hidden bg-stone-900 sm:h-80">
+      <section className="relative min-h-44 overflow-hidden bg-stone-900 sm:min-h-48">
         <div className="absolute inset-0 z-0">
           <Photo id={PHOTOS.hero} alt="Players on an indoor badminton court" className="h-full w-full" overlay={false} />
         </div>
         <div className="absolute inset-0 z-0 bg-gradient-to-r from-stone-900 via-stone-900/75 to-stone-900/20" />
-        <div className="relative z-10 flex h-full max-w-lg flex-col justify-center px-4 sm:px-8">
-          <Badge tone="accent">Jimmy</Badge>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Book badminton sessions, courts and tournaments.</h1>
-          <p className="mt-2 text-sm text-stone-300">Jimmy is where London's badminton players find each other — book a session by level and location, follow your club, and track your ranking, all in one place.</p>
+        <div className="relative z-10 flex min-h-44 max-w-lg flex-col justify-center px-4 py-6 sm:min-h-48 sm:px-8">
+          <h1 className="jimmi-hero-title">Find your people.<br/><span>Play your game.</span></h1>
+          <p className="jimmi-hero-description">Your badminton. Your community. All in one place.</p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button variant="accent" onClick={() => document.getElementById("session-list")?.scrollIntoView({ behavior: "smooth" })}>
               <Search className="h-4 w-4" /> Find a session
             </Button>
-            <Button variant="outline" className="border-stone-500 text-white hover:bg-stone-800" onClick={() => openAccountModal("settings")}>Sign up / Create profile</Button>
           </div>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-4 border-b border-stone-200 px-4 py-4 sm:grid-cols-4 sm:px-8">
-        <StatBlock label="Available sessions" value={SESSIONS.length} />
-        <StatBlock label="Clubs" value={CLUBS.length} />
-        <StatBlock label="Courts" value="27" />
-        <StatBlock label="Avg. reliability" value="89%" />
+      <section className="jimmi-features" aria-label="Explore JimmiPlay features">
+        <AutoScrollFeatures>
+          {[
+            {name:'Sessions',detail:'Find your next game',icon:Calendar,action:()=>document.getElementById('session-list')?.scrollIntoView({behavior:'smooth'})},
+            {name:'Sports Passport',detail:'Your player journey',icon:Contact,action:()=>go('profile')},
+            {name:'Levels',detail:'Find your level',icon:Layers,action:()=>setFeatureInfo(featureInfo==='levels'?null:'levels')},
+            {name:'Clubs',detail:'Find your community',icon:Users,action:()=>go('clubs')},
+            {name:'Tools',detail:'Play smarter',icon:Shuffle,action:()=>go('tools')},
+            {name:'Coaching',detail:'Learn and improve',icon:GraduationCap,action:()=>{setFilters(f=>({...f,type:'Coaching'}));document.getElementById('session-list')?.scrollIntoView({behavior:'smooth'});}},
+            {name:'Shop',detail:'Shuttles & gear',icon:ShoppingBag,action:()=>setFeatureInfo(featureInfo==='shop'?null:'shop')},
+            {name:'Tournaments',detail:'Rise to the challenge',icon:Trophy,action:()=>go('tournaments')},
+          ].map(({name,detail,icon:Icon,action})=><button className="jimmi-feature" key={name} onClick={action}><span className="jimmi-feature-icon"><Icon size={25} strokeWidth={1.7}/></span><strong>{name}</strong><span className="jimmi-feature-detail">{detail}</span>{name==='Shop'&&<span className="jimmi-feature-soon">Coming soon</span>}</button>)}
+        </AutoScrollFeatures>
+        {featureInfo&&<div className="jimmi-feature-info"><div className="flex items-center justify-between gap-3"><h2 className="font-semibold">{featureInfo==='levels'?'Find your level':'JimmiPlay Shop'}</h2><button aria-label="Close feature details" onClick={()=>setFeatureInfo(null)}><X size={18}/></button></div>{featureInfo==='levels'?<div className="jimmi-level-grid">{LEVELS.map(l=><div key={l.n}><strong>L{l.n} · {l.name}</strong><p>{l.detail}</p></div>)}</div>:<p>Shuttles and badminton gear, all in one place. The shop is coming soon.</p>}</div>}
       </section>
 
-      <section id="session-list" className="px-4 py-6 sm:px-8">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-stone-400" />
-          <h2 className="text-lg font-semibold text-stone-900">Search sessions</h2>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-stone-200 bg-stone-50 p-4 sm:grid-cols-4">
-            <label className="text-xs text-stone-500">Event type
-              <select className="mt-1 block w-full rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm" value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}>
-                {types.map((t) => <option key={t} value={t}>{t === "any" ? "Any type" : t}</option>)}
-              </select>
-            </label>
-            <label className="text-xs text-stone-500">Level
-              <select className="mt-1 block w-full rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm" value={filters.level} onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}>
-                <option value="any">Any level</option>
-                <option value="1-3">Beginner L1–L3</option>
-                <option value="3-6">Club social L3–L6</option>
-                <option value="6-9">Advanced L6–L9</option>
-              </select>
-            </label>
-            <label className="text-xs text-stone-500">Distance
-              <select className="mt-1 block w-full rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm" defaultValue="near">
-                <option value="near">Near to far</option>
-                <option value="far">Far to near</option>
-              </select>
-            </label>
-            <label className="text-xs text-stone-500">Date
-              <select className="mt-1 block w-full rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm" defaultValue="any">
-                <option value="any">All dates</option>
-                <option>Today</option>
-                <option>This week</option>
-              </select>
-            </label>
-        </div>
-
+      <section id="session-list" className="discover-list">
+        <h2 className="sr-only">Find badminton sessions</h2>
+        <DiscoverFilters filters={filters} setFilters={setFilters} locate={locate} locating={locating} locationMessage={locationMessage} hasLocation={Boolean(position)} types={types}/>
         <div id="results" className="mt-6 space-y-3">
           {filtered.length === 0 ? (
             <p className="py-10 text-center text-sm text-stone-500">No sessions match those filters. Try widening your search.</p>
@@ -734,10 +702,10 @@ function EventDetailPage({ eventId, go, bookings, followedClubs, toggleFollow })
           <span className="text-xs text-stone-500">♂ {session.male} · ♀ {session.female}</span>
         </div>
         {!showRoster ? (
-          <button onClick={() => setShowRoster(true)} className="mt-2 flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {roster.slice(0, 8).map((p, i) => <Avatar key={i} initials={p.name.split(" ").map((w) => w[0]).join("")} />)}
-              {roster.length > 8 && <div className="h-10 w-10 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-500">+{roster.length - 8}</div>}
+          <button onClick={() => setShowRoster(true)} className="mt-2 flex w-full flex-wrap items-center gap-3 text-left">
+            <div className="flex shrink-0 -space-x-2">
+              {roster.slice(0, 4).map((p, i) => <Avatar key={i} initials={p.name.split(" ").map((w) => w[0]).join("")} />)}
+              {roster.length > 4 && <div className="h-10 w-10 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-500">+{roster.length - 4}</div>}
             </div>
             <span className="flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-900">Show everyone's level <ChevronDown className="h-3.5 w-3.5" /></span>
           </button>
@@ -786,7 +754,7 @@ function EventDetailPage({ eventId, go, bookings, followedClubs, toggleFollow })
         {session.tags.map((t) => <Badge key={t} tone="accent">{t}</Badge>)}
       </div>
 
-      <div className="sticky bottom-16 md:bottom-0 mt-8 flex items-center justify-between rounded-xl border border-stone-200 bg-white p-4 shadow-lg">
+      <div className="sticky bottom-16 xl:bottom-0 mt-8 flex items-center justify-between rounded-xl border border-stone-200 bg-white p-4 shadow-lg">
         <div>
           <p className="text-xs text-stone-500">{full ? "Session full — join waitlist" : `${left} seats still open`}</p>
           <p className="text-lg font-semibold text-stone-900">£{session.price}</p>
@@ -823,7 +791,10 @@ function PaymentPage({ eventId, go, book }) {
   return (
     <div className="mx-auto max-w-md px-4 py-6 sm:px-8">
       <BackRow label="Back to session" onBack={() => go("eventDetail", { eventId: session.id })} />
-      <h1 className="text-xl font-semibold text-stone-900">Confirm and pay</h1>
+      <div className="rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+        Test environment — no real payment will be taken.
+      </div>
+      <h1 className="mt-5 text-xl font-semibold text-stone-900">Confirm test booking</h1>
       <Card className="mt-5 p-4">
         <p className="font-medium text-stone-900">{session.name}</p>
         <p className="text-sm text-stone-500">{session.date} · {session.timeStart}–{session.timeEnd} · {session.club}</p>
@@ -833,17 +804,9 @@ function PaymentPage({ eventId, go, book }) {
           <div className="flex justify-between font-semibold text-stone-900"><span>Total</span><span>£{total.toFixed(2)}</span></div>
         </div>
       </Card>
-      <div className="mt-5">
-        <h2 className="text-sm font-semibold text-stone-900">Payment method</h2>
-        <Card className="mt-2 flex items-center gap-3 p-4">
-          <CreditCard className="h-5 w-5 text-stone-400" />
-          <div className="flex-1"><p className="text-sm font-medium text-stone-900">Visa ending 4242</p><p className="text-xs text-stone-500">Processed securely via Stripe</p></div>
-          <Check className="h-4 w-4 text-yellow-600" />
-        </Card>
-      </div>
-      <p className="mt-4 text-xs text-stone-400">No real payment is taken in this preview. Full refund available before {session.refundBy}.</p>
+      <p className="mt-4 text-xs text-stone-500">This test records a preview booking only. No card details are requested and no money moves. The displayed price is for flow testing.</p>
       <Button variant="accent" className="mt-6 w-full" onClick={() => { book(session.id); setStep("confirmed"); }}>
-        {full ? "Join waitlist" : `Pay £${total.toFixed(2)}`}
+        {full ? "Join test waitlist" : "Confirm test booking"}
       </Button>
     </div>
   );
@@ -900,6 +863,7 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
   const level = LEVELS.find((l) => l.n === u.level);
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
+      <h1 className="text-2xl mb-3">My Space</h1>
       <Badge tone="accent">Sports passport</Badge>
       <div className="mt-3 flex items-center gap-4">
         <button onClick={() => openAccountModal("settings")}><Avatar initials={u.initials} size={16} tone="white" /></button>
@@ -920,14 +884,7 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="Performance">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile value={u.stats.wins} label="Wins" tone="yellow" />
-          <StatTile value={u.stats.losses} label="Losses" tone="muted" />
-          <StatTile value={`${u.stats.winRate}%`} label="Win rate" />
-          <StatTile value={`#${u.stats.ranking}`} label="Ranking" />
-        </div>
-      </SectionCard>
+      <MySpaceTools bookings={bookings} sessions={SESSIONS} stats={u.stats} openAccountModal={openAccountModal} go={go}/>
 
       <SectionCard title="Achievements">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -970,10 +927,7 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
         )}
       </SectionCard>
 
-      <button onClick={() => openAccountModal("methods")} className="mt-6 flex w-full items-center justify-between rounded-xl border border-stone-200 bg-white p-4 text-left hover:border-stone-300">
-        <div className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-stone-400" /><div><p className="text-sm font-medium text-stone-900">Payment & account settings</p><p className="text-xs text-stone-500">Payment methods, history, and policies</p></div></div>
-        <ChevronRight className="h-4 w-4 text-stone-300" />
-      </button>
+
     </div>
   );
 }
@@ -1068,6 +1022,51 @@ function ClubsPage({ openClub, followedClubs }) {
     </div>
   );
 }
+const MEMBERSHIP_TYPES = ["Standard", "Premium", "Family", "Junior", "Life"];
+function ClubMembersList() {
+  const [members, setMembers] = useState(() => ROSTER_POOL.map((p, i) => ({ id: `member-${i}`, name: p.name, level: p.level, gender: p.gender, note: "", membership: "" })));
+  const [editingNote, setEditingNote] = useState(null);
+  const updateNote = (id, value) => setMembers((list) => list.map((m) => (m.id === id ? { ...m, note: value } : m)));
+  const updateMembership = (id, value) => setMembers((list) => list.map((m) => (m.id === id ? { ...m, membership: value } : m)));
+  return (
+    <div className="mt-5">
+      <h2 className="text-sm font-semibold text-stone-900">Members</h2>
+      <div className="mt-2 space-y-2">
+        {members.map((m) => (
+          <div key={m.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-stone-200 p-3">
+            <Avatar initials={m.name.split(" ").map((w) => w[0]).join("")} size={9} />
+            <div className="min-w-[120px] flex-1">
+              <p className="text-sm font-medium text-stone-900">{m.name}</p>
+              <p className="text-xs text-stone-500">Level {m.level} · {m.gender}</p>
+            </div>
+            {editingNote === m.id ? (
+              <input
+                autoFocus
+                defaultValue={m.note}
+                placeholder="Add a note"
+                onBlur={(e) => { updateNote(m.id, e.target.value); setEditingNote(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                className="w-32 rounded-lg border border-stone-300 px-2 py-1.5 text-xs text-stone-900"
+              />
+            ) : (
+              <button onClick={() => setEditingNote(m.id)} className="rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs text-stone-600 hover:bg-stone-50">
+                {m.note ? m.note.slice(0, 6) : "+ Note"}
+              </button>
+            )}
+            <select
+              value={m.membership}
+              onChange={(e) => updateMembership(m.id, e.target.value)}
+              className="rounded-lg border border-stone-300 px-2 py-1.5 text-xs text-stone-700"
+            >
+              <option value="" disabled>Membership Type</option>
+              {MEMBERSHIP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function ClubDetailPage({ clubId, go, followedClubs, toggleFollow }) {
   const club = CLUBS.find((c) => c.id === clubId) || CLUBS[0];
   const following = followedClubs.includes(club.id);
@@ -1096,6 +1095,7 @@ function ClubDetailPage({ clubId, go, followedClubs, toggleFollow }) {
         <Card className="p-3"><p className="text-xs text-stone-500">Season</p><p className="mt-1 text-sm font-medium">{club.season}</p></Card>
         <Card className="p-3"><p className="text-xs text-stone-500">Trust</p><p className="mt-1 text-sm font-medium">{club.trust} returning</p></Card>
       </div>
+      <ClubMembersList />
       <p className="mt-5 text-sm leading-6 text-stone-600">{club.description}</p>
       <h2 className="mt-6 text-sm font-semibold text-stone-900">Club schedule ({clubSessions.length})</h2>
       <div className="mt-2 space-y-2">
@@ -1352,9 +1352,11 @@ function OrganiserPage() {
 /* ---------------------------------------------------------------
    ROOT APP
 ---------------------------------------------------------------- */
-export default function FlashX() {
-  const [view, setView] = useState("discover");
-  const [params, setParams] = useState({});
+function JimmiPlayApp() {
+  const initialRoute = pathToRoute(window.location.pathname) || { view: "discover", params: {} };
+  const [view, setView] = useState(initialRoute.view);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [params, setParams] = useState(initialRoute.params);
   const [bookings, setBookings] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [followedClubs, setFollowedClubs] = useState([]);
@@ -1365,7 +1367,19 @@ export default function FlashX() {
   const [accountModal, setAccountModal] = useState({ open: false, tab: "settings" });
   const [toast, setToast] = useState(null);
 
-  const go = (v, p = {}) => { setView(v); setParams(p); setNotifOpen(false); setAccountOpen(false); window.scrollTo(0, 0); };
+  const applyRoute = (route) => {
+    setView(route.view);
+    setParams(route.params);
+    setNotifOpen(false);
+    setAccountOpen(false);
+    window.scrollTo(0, 0);
+  };
+  const go = (v, p = {}) => {
+    if(v === "create") { setCreateOpen(true); return; }
+    const route = { view: v, params: p };
+    window.history.pushState(route, "", routeToPath(v, p));
+    applyRoute(route);
+  };
   const book = (id) => setBookings((b) => (b.some((x) => x.id === id) ? b : [...b, { id }]));
   const cancel = (id) => setBookings((b) => b.filter((x) => x.id !== id));
   const toggleFav = (id) => setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
@@ -1405,24 +1419,55 @@ export default function FlashX() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const titles = { discover: "Discover", clubs: "Clubs", rankings: "Rankings", tournaments: "Tournaments", bookings: "My bookings", profile: "Profile", organiser: "Organiser portal", eventDetail: "Session", payment: "Payment", clubDetail: "Club", tournamentDetail: "Tournament" };
+  React.useEffect(() => {
+    const onPopState = () => {
+      const route = pathToRoute(window.location.pathname);
+      if (route) applyRoute(route);
+      else window.location.reload();
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  React.useEffect(() => {
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.name = "robots";
+      document.head.appendChild(robots);
+    }
+    robots.content = "noindex, nofollow";
+    document.title = "JimmiPlay — Development Preview";
+  }, []);
+
+  const titles = { discover: "Discover", clubs: "Clubs", rankings: "Rankings", tournaments: "Tournaments", bookings: "My bookings", profile: "My Space", organiser: "Organiser portal", eventDetail: "Session", payment: "Payment", clubDetail: "Club", tournamentDetail: "Tournament" };
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif" }}>
+    <div className="min-h-screen bg-stone-50 text-stone-900">
       <TopNav view={view} go={go} notifOpen={notifOpen} setNotifOpen={setNotifOpen} accountOpen={accountOpen} setAccountOpen={setAccountOpen} openAccountModal={openAccountModal} />
-      <MobileHeader title={titles[view] || "Jimmy"} go={go} notifOpen={notifOpen} setNotifOpen={setNotifOpen} accountOpen={accountOpen} setAccountOpen={setAccountOpen} openAccountModal={openAccountModal} />
+      <MobileHeader title={titles[view] || "JimmiPlay"} go={go} notifOpen={notifOpen} setNotifOpen={setNotifOpen} accountOpen={accountOpen} setAccountOpen={setAccountOpen} openAccountModal={openAccountModal} />
 
-      {view === "discover" && <DiscoverPage openEvent={(id) => go("eventDetail", { eventId: id })} favorites={favorites} toggleFav={toggleFav} openAccountModal={openAccountModal} />}
+      {view === "discover" && <DiscoverPage go={go} openEvent={(id) => go("eventDetail", { eventId: id })} favorites={favorites} toggleFav={toggleFav} openAccountModal={openAccountModal} />}
       {view === "eventDetail" && <EventDetailPage eventId={params.eventId} go={go} bookings={bookings} followedClubs={followedClubs} toggleFollow={toggleFollow} />}
       {view === "payment" && <PaymentPage eventId={params.eventId} go={go} book={book} />}
       {view === "bookings" && <BookingsPage bookings={bookings} cancel={cancel} go={go} openAccountModal={openAccountModal} />}
       {view === "profile" && <ProfilePage bookings={bookings} go={go} followedClubs={followedClubs} openAccountModal={openAccountModal} />}
+      {["about","contact","terms"].includes(view) && <InformationPage view={view} go={go}/>}
+      {view === "tools" && <ToolsPage go={go}/>}
+      {view === "scoreboard" && <Scoreboard onBack={()=>go("tools")}/>}
+      {view === "tactics" && <TacticsBoard onBack={()=>go("tools")}/>}
+      {view === "levels" && <main className="mx-auto max-w-2xl px-4 py-6 sm:px-8"><BackRow label="Back to discover" onBack={()=>go('discover')}/><h1 className="text-2xl font-semibold">Badminton levels</h1><p className="mt-2 text-sm text-stone-500">Find the level that best describes your game.</p><div className="mt-5 space-y-3">{LEVELS.map(l=><section key={l.n} className="rounded-xl border border-stone-200 bg-white p-4"><div className="flex items-center gap-3"><Badge tone="accent">L{l.n}</Badge><h2 className="font-semibold">{l.name}</h2></div><p className="mt-2 text-sm text-stone-600">{l.detail}</p></section>)}</div></main>}
       {view === "rankings" && <RankingsPage />}
       {view === "clubs" && <ClubsPage openClub={(id) => go("clubDetail", { clubId: id })} followedClubs={followedClubs} />}
       {view === "clubDetail" && <ClubDetailPage clubId={params.clubId} go={go} followedClubs={followedClubs} toggleFollow={toggleFollow} />}
       {view === "tournaments" && <TournamentsPage openTournament={(id) => go("tournamentDetail", { tournamentId: id })} registeredTournaments={registeredTournaments} />}
       {view === "tournamentDetail" && <TournamentDetailPage tournamentId={params.tournamentId} go={go} registeredTournaments={registeredTournaments} toggleRegister={toggleRegister} />}
       {view === "organiser" && <OrganiserPage />}
+      {view === "create-session" && <EventForm key="session" onBack={() => go("discover")} />}
+      {view === "create-tournament" && <EventForm key="tournament" kind="tournament" onBack={() => go("discover")} />}
+      {view === "create-club" && <ClubForm onBack={() => go("clubs")} />}
+      {view === "coaching" && <CoachingFlow onBack={() => go("discover")} />}
+      {createOpen && <CreateSheet onClose={() => setCreateOpen(false)} onChoose={kind => { setCreateOpen(false); go(kind === "coaching" ? "coaching" : `create-${kind}`); }} />}
 
       <AccountModal
         open={accountModal.open}
@@ -1441,8 +1486,12 @@ export default function FlashX() {
         </div>
       )}
 
-      <div className="h-16 md:hidden" />
+
       <BottomNav view={view} go={go} />
     </div>
   );
+}
+
+export default function FlashX() {
+  return pathToRoute(window.location.pathname) ? <JimmiPlayApp /> : <ComingSoon />;
 }
