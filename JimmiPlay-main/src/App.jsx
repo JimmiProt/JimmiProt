@@ -5,7 +5,6 @@ import ToolsPage from './ToolsPage.jsx';
 import MySpaceTools from './MySpaceTools.jsx';
 import AutoScrollFeatures from './AutoScrollFeatures.jsx';
 import DiscoverFilters from './DiscoverFilters.jsx';
-import ComingSoon from './ComingSoon.jsx';
 import { pathToRoute, routeToPath } from './appRoutes.js';
 import { defaultFilters, filterSessions } from './discoverFilters.js';
 import { CreateSheet, EventForm, ClubForm, CoachingFlow } from './CreateFlows';
@@ -1493,5 +1492,5 @@ function JimmiPlayApp() {
 }
 
 export default function FlashX() {
-  return pathToRoute(window.location.pathname) ? <JimmiPlayApp /> : <ComingSoon />;
+  return <JimmiPlayApp />;
 }
