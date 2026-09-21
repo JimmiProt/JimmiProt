@@ -5,6 +5,7 @@ import ToolsPage from './ToolsPage.jsx';
 import MySpaceTools from './MySpaceTools.jsx';
 import AutoScrollFeatures from './AutoScrollFeatures.jsx';
 import DiscoverFilters from './DiscoverFilters.jsx';
+import ComingSoon from './ComingSoon.jsx';
 import { pathToRoute, routeToPath } from './appRoutes.js';
 import { defaultFilters, filterSessions } from './discoverFilters.js';
 import { CreateSheet, EventForm, ClubForm, CoachingFlow } from './CreateFlows';
@@ -192,8 +193,10 @@ function Badge({ children, tone = "neutral" }) {
     accent: "bg-yellow-100 text-yellow-800",
     warn: "bg-amber-50 text-amber-700",
     live: "bg-red-50 text-red-700",
+    tournament: "bg-blue-100 text-blue-700 font-semibold",
   };
-  return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
+  const shape = tone === "tournament" ? "rounded-full" : "rounded-md";
+  return <span className={`inline-flex items-center ${shape} px-2.5 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
 }
 function Card({ children, className = "", onClick }) {
   return (
@@ -208,8 +211,16 @@ function Avatar({ initials, size = 10, tone = "dark" }) {
     accent: "bg-yellow-100 text-yellow-800",
     white: "bg-white text-stone-900 border border-stone-200",
   };
+  const sizes = {
+    7: "h-9 w-9 text-xs",
+    8: "h-10 w-10 text-xs",
+    9: "h-11 w-11 text-sm",
+    10: "h-12 w-12 text-sm",
+    16: "h-20 w-20 text-lg",
+  };
+  const sizeClass = sizes[size] || sizes[10];
   return (
-    <div className={`h-${size} w-${size} shrink-0 rounded-full ${tones[tone]} flex items-center justify-center text-xs font-semibold`}>
+    <div className={`${sizeClass} shrink-0 rounded-full ${tones[tone]} flex items-center justify-center font-semibold`}>
       {initials}
     </div>
   );
@@ -814,7 +825,9 @@ function PaymentPage({ eventId, go, book }) {
 /* ---------------------------------------------------------------
    MY BOOKINGS
 ---------------------------------------------------------------- */
-function BookingsPage({ bookings, cancel, go, openAccountModal }) {
+function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTournaments }) {
+  const tournamentEntries = TOURNAMENTS.filter((t) => registeredTournaments?.includes(t.id));
+  const isEmpty = bookings.length === 0 && tournamentEntries.length === 0;
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
       <div className="flex items-center justify-between">
@@ -822,13 +835,26 @@ function BookingsPage({ bookings, cancel, go, openAccountModal }) {
         <button onClick={() => openAccountModal("history")} className="text-xs font-medium text-stone-500 hover:text-stone-900">Payment history →</button>
       </div>
 
-      {bookings.length === 0 ? (
+      {isEmpty ? (
         <div className="mt-10 text-center">
           <p className="text-sm text-stone-500">You don't have any upcoming bookings.</p>
           <Button variant="accent" className="mt-4" onClick={() => go("discover")}>Find a session</Button>
         </div>
       ) : (
         <div className="mt-5 space-y-3">
+          {tournamentEntries.map((t) => (
+            <Card key={t.id} className="flex items-center gap-4 p-4 cursor-pointer" onClick={() => go("tournamentDetail", { tournamentId: t.id })}>
+              <Photo id={PHOTOS.tournament} alt={t.name} className="h-16 w-16 rounded-lg shrink-0" overlay={false} />
+              <div className="flex-1 min-w-0">
+                <p className="truncate font-semibold text-stone-900">{t.name}</p>
+                <p className="text-sm text-stone-500">{t.date}</p>
+                <p className="text-xs text-stone-400">{t.club}</p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <Badge tone="tournament">Tournament</Badge>
+              </div>
+            </Card>
+          ))}
           {bookings.map((b) => {
             const s = SESSIONS.find((x) => x.id === b.id);
             if (!s) return null;
@@ -862,7 +888,7 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
   const level = LEVELS.find((l) => l.n === u.level);
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
-      <h1 className="text-2xl mb-3">My Space</h1>
+      <h1 className="text-2xl font-bold text-stone-900 mb-3">My Space</h1>
       <Badge tone="accent">Sports passport</Badge>
       <div className="mt-3 flex items-center gap-4">
         <button onClick={() => openAccountModal("settings")}><Avatar initials={u.initials} size={16} tone="white" /></button>
@@ -917,9 +943,10 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
             {bookings.map((b) => {
               const s = SESSIONS.find((x) => x.id === b.id);
               return s ? (
-                <div key={b.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-stone-700">{s.name}</span><span className="text-stone-400">{s.date}</span>
-                </div>
+                <button key={b.id} onClick={() => go("eventDetail", { eventId: b.id })} className="flex w-full items-center justify-between py-2.5 text-left text-sm hover:bg-stone-50">
+                  <span className="font-semibold text-stone-900">{s.name}</span>
+                  <span className="font-medium text-stone-600">{s.date}</span>
+                </button>
               ) : null;
             })}
           </div>
@@ -1449,7 +1476,7 @@ function JimmiPlayApp() {
       {view === "discover" && <DiscoverPage go={go} openEvent={(id) => go("eventDetail", { eventId: id })} favorites={favorites} toggleFav={toggleFav} openAccountModal={openAccountModal} />}
       {view === "eventDetail" && <EventDetailPage eventId={params.eventId} go={go} bookings={bookings} followedClubs={followedClubs} toggleFollow={toggleFollow} />}
       {view === "payment" && <PaymentPage eventId={params.eventId} go={go} book={book} />}
-      {view === "bookings" && <BookingsPage bookings={bookings} cancel={cancel} go={go} openAccountModal={openAccountModal} />}
+      {view === "bookings" && <BookingsPage bookings={bookings} cancel={cancel} go={go} openAccountModal={openAccountModal} registeredTournaments={registeredTournaments} />}
       {view === "profile" && <ProfilePage bookings={bookings} go={go} followedClubs={followedClubs} openAccountModal={openAccountModal} />}
       {["about","contact","terms"].includes(view) && <InformationPage view={view} go={go}/>}
       {view === "tools" && <ToolsPage go={go}/>}
@@ -1492,5 +1519,5 @@ function JimmiPlayApp() {
 }
 
 export default function FlashX() {
-  return <JimmiPlayApp />;
+  return pathToRoute(window.location.pathname) ? <JimmiPlayApp /> : <ComingSoon />;
 }
