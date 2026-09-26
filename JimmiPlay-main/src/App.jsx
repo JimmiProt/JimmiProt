@@ -193,7 +193,7 @@ function Badge({ children, tone = "neutral" }) {
     accent: "bg-yellow-100 text-yellow-800",
     warn: "bg-amber-50 text-amber-700",
     live: "bg-red-50 text-red-700",
-    tournament: "bg-blue-100 text-blue-700 font-semibold",
+    tournament: "bg-blue-100 text-blue-700",
   };
   const shape = tone === "tournament" ? "rounded-full" : "rounded-md";
   return <span className={`inline-flex items-center ${shape} px-2.5 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
@@ -780,41 +780,34 @@ function EventDetailPage({ eventId, go, bookings, followedClubs, toggleFollow })
 /* ---------------------------------------------------------------
    BOOKING DETAILS — shared pop-up used from confirmation and My bookings
 ---------------------------------------------------------------- */
-function BookingDetailsModal({ session, onClose, onCancel }) {
-  if (!session) return null;
+function BookingDetailPage({ eventId, go, cancel }) {
+  const session = SESSIONS.find((s) => s.id === eventId);
+  if (!session) return <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-8"><p className="text-sm text-stone-500">Booking not found.</p></div>;
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/50 p-4" onClick={onClose}>
-      <div className="mx-auto my-8 w-full max-w-md rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-          <h2 className="text-lg font-semibold text-stone-900">Booking details</h2>
-          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"><X className="h-5 w-5" /></button>
-        </div>
-        <div className="space-y-4 px-5 py-5">
-          <div>
-            <p className="font-semibold text-stone-900">{session.name}</p>
-            <p className="text-sm text-stone-500">{session.date} · {session.timeStart}–{session.timeEnd}</p>
-            <p className="text-sm text-stone-500">{session.club}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="accent">Status: confirmed</Badge>
-            <Badge tone="accent">Payment: confirmed</Badge>
-          </div>
-          <div className="grid grid-cols-2 gap-3 rounded-lg bg-stone-50 p-3 text-sm">
-            <div><p className="text-xs text-stone-400">Booking ID</p><p className="truncate font-medium text-stone-700">{session.id}-bk</p></div>
-            <div><p className="text-xs text-stone-400">Players</p><p className="font-medium text-stone-700">1</p></div>
-          </div>
-          <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4">
-            <Button variant="outline" className="flex-1">Add to calendar</Button>
-            <Button variant="outline" className="flex-1">Contact organiser</Button>
-            <Button variant="outline" className="flex-1">Share</Button>
-          </div>
-          {onCancel && (
-            <button onClick={() => { onCancel(session.id); onClose(); }} className="w-full rounded-lg border border-red-200 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50">
-              Cancel booking
-            </button>
-          )}
-        </div>
+    <div className="mx-auto max-w-md px-4 py-6 sm:px-8">
+      <BackRow label="Back to my bookings" onBack={() => go("bookings")} />
+      <h1 className="text-xl font-semibold text-stone-900">Booking details</h1>
+      <Card className="mt-4 p-4">
+        <p className="font-semibold text-stone-900">{session.name}</p>
+        <p className="text-sm text-stone-500">{session.date} · {session.timeStart}–{session.timeEnd}</p>
+        <p className="text-sm text-stone-500">{session.club}</p>
+      </Card>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Badge tone="accent">Status: confirmed</Badge>
+        <Badge tone="accent">Payment: confirmed</Badge>
       </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-stone-50 p-3 text-sm">
+        <div><p className="text-xs text-stone-400">Booking ID</p><p className="truncate font-medium text-stone-700">{session.id}-bk</p></div>
+        <div><p className="text-xs text-stone-400">Players</p><p className="font-medium text-stone-700">1</p></div>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-2 border-t border-stone-100 pt-5">
+        <Button variant="outline" className="flex-1">Add to calendar</Button>
+        <Button variant="outline" className="flex-1">Contact organiser</Button>
+        <Button variant="outline" className="flex-1">Share</Button>
+      </div>
+      <button onClick={() => { cancel(session.id); go("bookings"); }} className="mt-4 w-full rounded-lg border border-red-200 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50">
+        Cancel booking
+      </button>
     </div>
   );
 }
@@ -825,28 +818,23 @@ function BookingDetailsModal({ session, onClose, onCancel }) {
 function PaymentPage({ eventId, go, book, cancel }) {
   const session = SESSIONS.find((s) => s.id === eventId) || SESSIONS[0];
   const [step, setStep] = useState("review");
-  const [showDetails, setShowDetails] = useState(false);
   const fee = Math.round(session.price * 0.05 * 100) / 100;
   const total = session.price + fee;
   const full = seatsLeft(session) === 0;
 
   if (step === "confirmed") {
     return (
-      <>
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/50 p-4">
-          <div className="mx-auto my-16 w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100"><Check className="h-7 w-7 text-yellow-700" /></div>
-            <h1 className="mt-5 text-xl font-semibold text-stone-900">{full ? "Added to waitlist" : "Booking confirmed"}</h1>
-            <p className="mt-2 text-sm text-stone-500">{session.name} · {session.date} at {session.timeStart}.</p>
-            <div className="mt-3 flex justify-center"><Badge tone="accent">Payment status: confirmed</Badge></div>
-            <div className="mt-6 flex flex-col gap-2">
-              <Button variant="accent" onClick={() => setShowDetails(true)}>View more details</Button>
-              <Button variant="outline" onClick={() => go("bookings")}>Go to my bookings</Button>
-            </div>
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/50 p-4">
+        <div className="mx-auto my-16 w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100"><Check className="h-7 w-7 text-yellow-700" /></div>
+          <h1 className="mt-5 text-xl font-semibold text-stone-900">{full ? "Added to waitlist" : "Booking confirmed"}</h1>
+          <p className="mt-2 text-sm text-stone-500">{session.name} · {session.date} at {session.timeStart}.</p>
+          <div className="mt-3 flex justify-center"><Badge tone="accent">Payment status: confirmed</Badge></div>
+          <div className="mt-6">
+            <Button variant="accent" className="w-full" onClick={() => go("bookings")}>Go to my bookings</Button>
           </div>
         </div>
-        {showDetails && <BookingDetailsModal session={session} onClose={() => setShowDetails(false)} onCancel={(id) => { cancel(id); go("bookings"); }} />}
-      </>
+      </div>
     );
   }
 
@@ -878,10 +866,8 @@ function PaymentPage({ eventId, go, book, cancel }) {
    MY BOOKINGS
 ---------------------------------------------------------------- */
 function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTournaments }) {
-  const [selectedId, setSelectedId] = useState(null);
   const tournamentEntries = TOURNAMENTS.filter((t) => registeredTournaments?.includes(t.id));
   const isEmpty = bookings.length === 0 && tournamentEntries.length === 0;
-  const selectedSession = SESSIONS.find((s) => s.id === selectedId);
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
       <div className="flex items-center justify-between">
@@ -913,7 +899,7 @@ function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTourna
             const s = SESSIONS.find((x) => x.id === b.id);
             if (!s) return null;
             return (
-              <Card key={b.id} className="flex cursor-pointer items-center gap-4 p-4" onClick={() => setSelectedId(b.id)}>
+              <Card key={b.id} className="flex cursor-pointer items-center gap-4 p-4" onClick={() => go("bookingDetail", { eventId: b.id })}>
                 <Photo id={PHOTOS.session} alt={s.name} className="h-16 w-16 rounded-lg shrink-0" overlay={false} />
                 <div className="flex-1 min-w-0">
                   <p className="truncate font-medium text-stone-900">{s.name}</p>
@@ -922,14 +908,13 @@ function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTourna
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge tone="accent">Confirmed</Badge>
-                  <span className="text-xs font-medium text-stone-500">View details →</span>
+                  <span className="text-xs text-stone-400">View details →</span>
                 </div>
               </Card>
             );
           })}
         </div>
       )}
-      {selectedSession && <BookingDetailsModal session={selectedSession} onClose={() => setSelectedId(null)} onCancel={cancel} />}
     </div>
   );
 }
@@ -943,7 +928,7 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
   const level = LEVELS.find((l) => l.n === u.level);
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
-      <h1 className="text-2xl font-bold text-stone-900 mb-3">My Space</h1>
+      <h1 className="text-2xl mb-3">My Space</h1>
       <Badge tone="accent">Sports passport</Badge>
       <div className="mt-3 flex items-center gap-4">
         <button onClick={() => openAccountModal("settings")}><Avatar initials={u.initials} size={16} tone="white" /></button>
@@ -955,6 +940,31 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
         <button onClick={() => openAccountModal("settings")} className="rounded-lg border border-stone-300 p-2 text-stone-500 hover:bg-stone-50"><Settings className="h-4 w-4" /></button>
       </div>
 
+      {/* Primary: what you're most likely here for */}
+      <SectionCard title="Upcoming events" action={<button onClick={() => go("bookings")} className="text-xs font-medium text-stone-500 hover:text-stone-900">See all →</button>}>
+        {bookings.length === 0 ? <p className="text-sm text-stone-500">No upcoming bookings.</p> : (
+          <div className="divide-y divide-stone-100">
+            {bookings.map((b) => {
+              const s = SESSIONS.find((x) => x.id === b.id);
+              return s ? (
+                <div key={b.id} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-stone-700">{s.name}</span><span className="text-stone-400">{s.date}</span>
+                </div>
+              ) : null;
+            })}
+          </div>
+        )}
+      </SectionCard>
+
+      <MySpaceTools bookings={bookings} sessions={SESSIONS} stats={u.stats} openAccountModal={openAccountModal} go={go}/>
+
+      {/* Secondary: less frequently used, grouped separately below */}
+      <div className="mt-8 flex items-center gap-3">
+        <span className="h-px flex-1 bg-stone-200" />
+        <span className="text-xs uppercase tracking-wide text-stone-400">More about you</span>
+        <span className="h-px flex-1 bg-stone-200" />
+      </div>
+
       <SectionCard title="Overview">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile value={u.stats.activities} label="Activities" />
@@ -963,8 +973,6 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
           <StatTile value={u.stats.noShows} label="No-shows" />
         </div>
       </SectionCard>
-
-      <MySpaceTools bookings={bookings} sessions={SESSIONS} stats={u.stats} openAccountModal={openAccountModal} go={go}/>
 
       <SectionCard title="Achievements">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -988,22 +996,6 @@ function ProfilePage({ bookings, go, followedClubs, openAccountModal }) {
                 <div><p className="text-sm font-medium text-stone-900">{c.name}</p><p className="text-xs text-stone-500">{c.location}</p></div>
               </button>
             ))}
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Upcoming events" action={<button onClick={() => go("bookings")} className="text-xs font-medium text-stone-500 hover:text-stone-900">See all →</button>}>
-        {bookings.length === 0 ? <p className="text-sm text-stone-500">No upcoming bookings.</p> : (
-          <div className="divide-y divide-stone-100">
-            {bookings.map((b) => {
-              const s = SESSIONS.find((x) => x.id === b.id);
-              return s ? (
-                <button key={b.id} onClick={() => go("eventDetail", { eventId: b.id })} className="flex w-full items-center justify-between py-2.5 text-left text-sm hover:bg-stone-50">
-                  <span className="font-semibold text-stone-900">{s.name}</span>
-                  <span className="font-medium text-stone-600">{s.date}</span>
-                </button>
-              ) : null;
-            })}
           </div>
         )}
       </SectionCard>
@@ -1531,6 +1523,7 @@ function JimmiPlayApp() {
       {view === "discover" && <DiscoverPage go={go} openEvent={(id) => go("eventDetail", { eventId: id })} favorites={favorites} toggleFav={toggleFav} openAccountModal={openAccountModal} />}
       {view === "eventDetail" && <EventDetailPage eventId={params.eventId} go={go} bookings={bookings} followedClubs={followedClubs} toggleFollow={toggleFollow} />}
       {view === "payment" && <PaymentPage eventId={params.eventId} go={go} book={book} cancel={cancel} />}
+      {view === "bookingDetail" && <BookingDetailPage eventId={params.eventId} go={go} cancel={cancel} />}
       {view === "bookings" && <BookingsPage bookings={bookings} cancel={cancel} go={go} openAccountModal={openAccountModal} registeredTournaments={registeredTournaments} />}
       {view === "profile" && <ProfilePage bookings={bookings} go={go} followedClubs={followedClubs} openAccountModal={openAccountModal} />}
       {["about","contact","terms"].includes(view) && <InformationPage view={view} go={go}/>}

@@ -24,6 +24,7 @@ const staticRoutes = {
 export function routeToPath(view, params = {}) {
   if (view === "eventDetail") return `${APP_BASE}/session/${encodeURIComponent(params.eventId || "")}`;
   if (view === "payment") return `${APP_BASE}/booking/${encodeURIComponent(params.eventId || "")}`;
+  if (view === "bookingDetail") return `${APP_BASE}/my-booking/${encodeURIComponent(params.eventId || "")}`;
   if (view === "clubDetail") return `${APP_BASE}/club/${encodeURIComponent(params.clubId || "")}`;
   if (view === "tournamentDetail") return `${APP_BASE}/tournament/${encodeURIComponent(params.tournamentId || "")}`;
   return `${APP_BASE}/${staticRoutes[view] || "discover"}`;
@@ -37,6 +38,7 @@ export function pathToRoute(pathname = "/") {
   const dynamic = [
     ["session/", "eventDetail", "eventId"],
     ["booking/", "payment", "eventId"],
+    ["my-booking/", "bookingDetail", "eventId"],
     ["club/", "clubDetail", "clubId"],
     ["tournament/", "tournamentDetail", "tournamentId"],
   ].find(([prefix]) => path.startsWith(prefix));
