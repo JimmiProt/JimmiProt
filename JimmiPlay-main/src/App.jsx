@@ -5,6 +5,7 @@ import ToolsPage from './ToolsPage.jsx';
 import MySpaceTools from './MySpaceTools.jsx';
 import AutoScrollFeatures from './AutoScrollFeatures.jsx';
 import DiscoverFilters from './DiscoverFilters.jsx';
+import ComingSoon from './ComingSoon.jsx';
 import { pathToRoute, routeToPath } from './appRoutes.js';
 import { defaultFilters, filterSessions } from './discoverFilters.js';
 import { CreateSheet, EventForm, ClubForm, CoachingFlow } from './CreateFlows';
@@ -776,24 +777,76 @@ function EventDetailPage({ eventId, go, bookings, followedClubs, toggleFollow })
   );
 }
 
-function PaymentPage({ eventId, go, book }) {
+/* ---------------------------------------------------------------
+   BOOKING DETAILS — shared pop-up used from confirmation and My bookings
+---------------------------------------------------------------- */
+function BookingDetailsModal({ session, onClose, onCancel }) {
+  if (!session) return null;
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/50 p-4" onClick={onClose}>
+      <div className="mx-auto my-8 w-full max-w-md rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
+          <h2 className="text-lg font-semibold text-stone-900">Booking details</h2>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="space-y-4 px-5 py-5">
+          <div>
+            <p className="font-semibold text-stone-900">{session.name}</p>
+            <p className="text-sm text-stone-500">{session.date} · {session.timeStart}–{session.timeEnd}</p>
+            <p className="text-sm text-stone-500">{session.club}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="accent">Status: confirmed</Badge>
+            <Badge tone="accent">Payment: confirmed</Badge>
+          </div>
+          <div className="grid grid-cols-2 gap-3 rounded-lg bg-stone-50 p-3 text-sm">
+            <div><p className="text-xs text-stone-400">Booking ID</p><p className="truncate font-medium text-stone-700">{session.id}-bk</p></div>
+            <div><p className="text-xs text-stone-400">Players</p><p className="font-medium text-stone-700">1</p></div>
+          </div>
+          <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4">
+            <Button variant="outline" className="flex-1">Add to calendar</Button>
+            <Button variant="outline" className="flex-1">Contact organiser</Button>
+            <Button variant="outline" className="flex-1">Share</Button>
+          </div>
+          {onCancel && (
+            <button onClick={() => { onCancel(session.id); onClose(); }} className="w-full rounded-lg border border-red-200 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50">
+              Cancel booking
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   PAYMENT
+---------------------------------------------------------------- */
+function PaymentPage({ eventId, go, book, cancel }) {
   const session = SESSIONS.find((s) => s.id === eventId) || SESSIONS[0];
   const [step, setStep] = useState("review");
+  const [showDetails, setShowDetails] = useState(false);
   const fee = Math.round(session.price * 0.05 * 100) / 100;
   const total = session.price + fee;
   const full = seatsLeft(session) === 0;
 
   if (step === "confirmed") {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center sm:px-8">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100"><Check className="h-7 w-7 text-yellow-700" /></div>
-        <h1 className="mt-5 text-xl font-semibold text-stone-900">{full ? "Added to waitlist" : "Booking confirmed"}</h1>
-        <p className="mt-2 text-sm text-stone-500">{session.name} · {session.date} at {session.timeStart}.</p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Button variant="outline" onClick={() => go("eventDetail", { eventId: session.id })}>View session</Button>
-          <Button variant="accent" onClick={() => go("bookings")}>Go to my bookings</Button>
+      <>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/50 p-4">
+          <div className="mx-auto my-16 w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100"><Check className="h-7 w-7 text-yellow-700" /></div>
+            <h1 className="mt-5 text-xl font-semibold text-stone-900">{full ? "Added to waitlist" : "Booking confirmed"}</h1>
+            <p className="mt-2 text-sm text-stone-500">{session.name} · {session.date} at {session.timeStart}.</p>
+            <div className="mt-3 flex justify-center"><Badge tone="accent">Payment status: confirmed</Badge></div>
+            <div className="mt-6 flex flex-col gap-2">
+              <Button variant="accent" onClick={() => setShowDetails(true)}>View more details</Button>
+              <Button variant="outline" onClick={() => go("bookings")}>Go to my bookings</Button>
+            </div>
+          </div>
         </div>
-      </div>
+        {showDetails && <BookingDetailsModal session={session} onClose={() => setShowDetails(false)} onCancel={(id) => { cancel(id); go("bookings"); }} />}
+      </>
     );
   }
 
@@ -825,8 +878,10 @@ function PaymentPage({ eventId, go, book }) {
    MY BOOKINGS
 ---------------------------------------------------------------- */
 function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTournaments }) {
+  const [selectedId, setSelectedId] = useState(null);
   const tournamentEntries = TOURNAMENTS.filter((t) => registeredTournaments?.includes(t.id));
   const isEmpty = bookings.length === 0 && tournamentEntries.length === 0;
+  const selectedSession = SESSIONS.find((s) => s.id === selectedId);
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
       <div className="flex items-center justify-between">
@@ -858,7 +913,7 @@ function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTourna
             const s = SESSIONS.find((x) => x.id === b.id);
             if (!s) return null;
             return (
-              <Card key={b.id} className="flex items-center gap-4 p-4">
+              <Card key={b.id} className="flex cursor-pointer items-center gap-4 p-4" onClick={() => setSelectedId(b.id)}>
                 <Photo id={PHOTOS.session} alt={s.name} className="h-16 w-16 rounded-lg shrink-0" overlay={false} />
                 <div className="flex-1 min-w-0">
                   <p className="truncate font-medium text-stone-900">{s.name}</p>
@@ -867,13 +922,14 @@ function BookingsPage({ bookings, cancel, go, openAccountModal, registeredTourna
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge tone="accent">Confirmed</Badge>
-                  <button onClick={() => cancel(b.id)} className="text-xs text-stone-400 hover:text-red-600">Cancel</button>
+                  <span className="text-xs font-medium text-stone-500">View details →</span>
                 </div>
               </Card>
             );
           })}
         </div>
       )}
+      {selectedSession && <BookingDetailsModal session={selectedSession} onClose={() => setSelectedId(null)} onCancel={cancel} />}
     </div>
   );
 }
@@ -1474,7 +1530,7 @@ function JimmiPlayApp() {
 
       {view === "discover" && <DiscoverPage go={go} openEvent={(id) => go("eventDetail", { eventId: id })} favorites={favorites} toggleFav={toggleFav} openAccountModal={openAccountModal} />}
       {view === "eventDetail" && <EventDetailPage eventId={params.eventId} go={go} bookings={bookings} followedClubs={followedClubs} toggleFollow={toggleFollow} />}
-      {view === "payment" && <PaymentPage eventId={params.eventId} go={go} book={book} />}
+      {view === "payment" && <PaymentPage eventId={params.eventId} go={go} book={book} cancel={cancel} />}
       {view === "bookings" && <BookingsPage bookings={bookings} cancel={cancel} go={go} openAccountModal={openAccountModal} registeredTournaments={registeredTournaments} />}
       {view === "profile" && <ProfilePage bookings={bookings} go={go} followedClubs={followedClubs} openAccountModal={openAccountModal} />}
       {["about","contact","terms"].includes(view) && <InformationPage view={view} go={go}/>}
@@ -1518,5 +1574,5 @@ function JimmiPlayApp() {
 }
 
 export default function FlashX() {
-  return <JimmiPlayApp />;
+  return pathToRoute(window.location.pathname) ? <JimmiPlayApp /> : <ComingSoon />;
 }
