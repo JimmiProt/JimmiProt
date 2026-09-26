@@ -1574,5 +1574,7 @@ function JimmiPlayApp() {
 }
 
 export default function FlashX() {
-  return pathToRoute(window.location.pathname) ? <JimmiPlayApp /> : <ComingSoon />;
+  // Coming Soon temporarily disabled for testing — always load the full app.
+  // To restore: change this back to `pathToRoute(window.location.pathname) ? <JimmiPlayApp /> : <ComingSoon />;`
+  return <JimmiPlayApp />;
 }
