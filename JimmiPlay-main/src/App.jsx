@@ -571,20 +571,22 @@ function SessionCard({ session, onOpen, favorites, toggleFav }) {
                   <Heart className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-stone-300"}`} />
                 </button>
               </div>
-              <p className="text-sm text-stone-500">{session.location} · {session.type}{session.distanceKm != null && ` · ${session.distanceKm.toFixed(1)} km away`}</p>
+              <p className="text-sm text-stone-500">{session.location} · {session.club}</p>
             </div>
             <p className="shrink-0 text-lg font-semibold text-stone-900">£{session.price}</p>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-600">
             <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-stone-400" />{session.date}</span>
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-stone-400" />{session.timeStart}–{session.timeEnd}</span>
-            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-stone-400" />{session.going}/{session.seats} going</span>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge tone="neutral">Levels {session.levelMin}–{session.levelMax}</Badge>
-            <Badge tone={full ? "warn" : left <= 3 ? "warn" : "neutral"}>{full ? "Waitlist" : `${left} seats left`}</Badge>
-            <Badge tone="neutral">♂ {session.male} · ♀ {session.female}</Badge>
-            {session.tags.map((t) => <Badge key={t} tone="accent">{t}</Badge>)}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="neutral">Levels {session.levelMin}–{session.levelMax}</Badge>
+              <Badge tone={full ? "warn" : left <= 3 ? "warn" : "neutral"}>{full ? "Waitlist" : `${left} seats left`}</Badge>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onOpen(session.id); }} className="flex items-center gap-1 text-xs font-semibold text-stone-900 hover:underline">
+              View session <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -764,15 +766,31 @@ function EventDetailPage({ eventId, go, bookings, followedClubs, toggleFollow })
         {session.tags.map((t) => <Badge key={t} tone="accent">{t}</Badge>)}
       </div>
 
-      <div className="sticky bottom-16 xl:bottom-0 mt-8 flex items-center justify-between rounded-xl border border-stone-200 bg-white p-4 shadow-lg">
-        <div>
-          <p className="text-xs text-stone-500">{full ? "Session full — join waitlist" : `${left} seats still open`}</p>
-          <p className="text-lg font-semibold text-stone-900">£{session.price}</p>
+      {isBooked ? (
+        <div className="sticky bottom-16 xl:bottom-0 mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4 shadow-lg">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold text-stone-900">You're attending</p>
+              <p className="mt-1 text-sm text-stone-600">Payment status: confirmed</p>
+              <p className="mt-1 text-xs text-stone-500">Refund rule: full refund if you cancel before {session.refundBy}.</p>
+            </div>
+            <Badge tone="accent">Confirmed</Badge>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => go("bookingDetail", { eventId: session.id })}>View more details</Button>
+            <Button variant="outline">Add to calendar</Button>
+            <Button variant="outline">Contact organiser</Button>
+          </div>
         </div>
-        {isBooked ? <Badge tone="accent">You're attending</Badge> : (
+      ) : (
+        <div className="sticky bottom-16 xl:bottom-0 mt-8 flex items-center justify-between rounded-xl border border-stone-200 bg-white p-4 shadow-lg">
+          <div>
+            <p className="text-xs text-stone-500">{full ? "Session full — join waitlist" : `${left} seats still open`}</p>
+            <p className="text-lg font-semibold text-stone-900">£{session.price}</p>
+          </div>
           <Button variant="accent" onClick={() => go("payment", { eventId: session.id })}>{full ? "Join waitlist" : "Attend"}</Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
