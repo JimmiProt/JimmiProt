@@ -778,7 +778,7 @@ function EventDetailPage({ eventId, go, bookings, followedClubs, toggleFollow })
     </div>
   );
 }
-}
+
 
 /* ---------------------------------------------------------------
    PAYMENT
